@@ -11,7 +11,7 @@ namespace Application.Services
 
         public ProductoService(IProductoRepository repository)
         {
-            _repository = repository; 
+            _repository = repository;
         }
 
         public async Task<ProductoDto> CreateProductAsync(CreateProductoDto createProductoDto)
@@ -46,7 +46,8 @@ namespace Application.Services
         public async Task<ProductoDto> GetProductByIdAsync(int id)
         {
             var producto = await _repository.GetByIdAsync(id);
-            if (producto == null) {
+            if (producto == null)
+            {
                 return null;
             }
 
@@ -56,5 +57,6 @@ namespace Application.Services
                 Nombre = producto.Nombre,
                 Precio = producto.Precio
             };
+        }
     }
 }

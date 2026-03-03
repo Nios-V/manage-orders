@@ -1,4 +1,16 @@
+using Domain.Interfaces;
+using Infrastructure.Persistence;
+using Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Registro de repositorios (Uno por uno para no perder tiempo)
+builder.Services.AddScoped<IOrdenRepository, OrdenRepository>();
+builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
 
 // Add services to the container.
 
