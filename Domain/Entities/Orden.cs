@@ -6,5 +6,6 @@
         public string Cliente { get; set; } = string.Empty;
         public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
         public decimal Total { get; set; }
+        public List<OrdenProducto> OrdenProductos { get; set; } = new();
     }
 }
