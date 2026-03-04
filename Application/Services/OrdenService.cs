@@ -2,6 +2,7 @@
 using Application.Interfaces;
 using Domain.Entities;
 using Domain.Interfaces;
+using Domain.Services;
 
 namespace Application.Services
 {
@@ -36,7 +37,7 @@ namespace Application.Services
                 }
             }
 
-            orden.Total = subtotal;
+            orden.Total = DescuentoService.AplicarDescuento(subtotal, orden.OrdenProductos.Count);
             await _ordenRepository.AddAsync(orden);
 
             return new OrdenDto
