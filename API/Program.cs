@@ -15,10 +15,13 @@ builder.Services.AddScoped<IOrdenRepository, OrdenRepository>();
 builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
 
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
-
 
 using (var scope = app.Services.CreateScope())
 {
@@ -38,11 +41,17 @@ using (var scope = app.Services.CreateScope())
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsProduction())
+{
+    app.UseHttpsRedirection();
+}
+
+app.MapHealthChecks("/health");
+
 app.UseAuthorization();
 app.MapControllers();
-
 app.Run();
