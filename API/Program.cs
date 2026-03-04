@@ -1,3 +1,4 @@
+using API.Middleware;
 using Application.Interfaces;
 using Application.Services;
 using Domain.Interfaces;
@@ -43,6 +44,8 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "Ocurrió un error al migrar la base de datos");
     }
 }
+
+app.UseMiddleware<ExceptionHandler>();
 
 if (app.Environment.IsDevelopment())
 {
