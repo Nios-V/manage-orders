@@ -1,5 +1,5 @@
-﻿using Domain.Entities;
-using Domain.Interfaces;
+﻿using Application.DTOs;
+using Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
@@ -8,33 +8,33 @@ namespace API.Controllers
     [Route("productos")]
     public class ProductoController : ControllerBase
     {
-        private readonly IProductoRepository _repository;
+        private readonly IProductoService _productoService;
 
-        public ProductoController(IProductoRepository repository)
+        public ProductoController(IProductoService productoService)
         {
-            _repository = repository;
+            _productoService = productoService;
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Producto>>> Get()
+        public async Task<ActionResult<IEnumerable<ProductoDto>>> Get()
         {
-            var productos = await _repository.GetAllAsync();
+            var productos = await _productoService.GetAllProductsAsync();
             return Ok(productos);
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Producto>> GetById(int id)
+        public async Task<ActionResult<ProductoDto>> GetById(int id)
         {
-            var producto = await _repository.GetByIdAsync(id);
+            var producto = await _productoService.GetProductByIdAsync(id);
             if (producto == null)
                 return NotFound();
             return Ok(producto);
         }
 
         [HttpPost]
-        public async Task<ActionResult> Create([FromBody] Producto producto)
+        public async Task<ActionResult<ProductoDto>> Create([FromBody] CreateProductoDto dto)
         {
-            await _repository.AddAsync(producto);
+            var producto = await _productoService.CreateProductAsync(dto);
             return CreatedAtAction(nameof(GetById), new { id = producto.Id }, producto);
         }
     }

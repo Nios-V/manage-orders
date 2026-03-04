@@ -68,7 +68,7 @@ namespace Application.Services
             });
         }
 
-        public async Task<DetailedOrdenDto> GetOrderByIdAsync(int id)
+        public async Task<DetailedOrdenDto?> GetOrderByIdAsync(int id)
         {
             var orden = await _ordenRepository.GetByIdAsync(id);
             if (orden == null) return null;
@@ -79,19 +79,23 @@ namespace Application.Services
                 Cliente = orden.Cliente,
                 FechaCreacion = orden.FechaCreacion,
                 Total = orden.Total,
-                Productos = orden.OrdenProductos.Select((op) => new ProductoDto
+                Productos = orden.OrdenProductos.Select(op => new ProductoDto
                 {
-                    Id = op.Producto.Id,
+                    Id = op.ProductoId,
                     Nombre = op.Producto.Nombre,
                     Precio = op.Producto.Precio
                 }).ToList()
             };
         }
 
-        public async Task<OrdenDto> UpdateOrderAsync(int id, UpdateOrdenDto updateOrdenDto)
+        public async Task<OrdenDto?> UpdateOrderAsync(int id, UpdateOrdenDto updateOrdenDto)
         {
             var orden = await _ordenRepository.GetByIdAsync(id);
             if (orden == null) return null;
+
+            orden.Cliente = updateOrdenDto.Cliente;
+            orden.Total = updateOrdenDto.Total;
+
             await _ordenRepository.UpdateAsync(orden);
 
             return new OrdenDto
@@ -99,7 +103,7 @@ namespace Application.Services
                 Id = orden.Id,
                 Cliente = orden.Cliente,
                 FechaCreacion = orden.FechaCreacion,
-                Total = orden.Total,
+                Total = orden.Total
             };
         }
     }

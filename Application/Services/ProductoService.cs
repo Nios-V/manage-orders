@@ -43,7 +43,7 @@ namespace Application.Services
             });
         }
 
-        public async Task<ProductoDto> GetProductByIdAsync(int id)
+        public async Task<ProductoDto?> GetProductByIdAsync(int id)
         {
             var producto = await _repository.GetByIdAsync(id);
             if (producto == null)

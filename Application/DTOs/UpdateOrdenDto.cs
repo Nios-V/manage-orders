@@ -6,5 +6,6 @@ namespace Application.DTOs
     {
         [Required]
         public string Cliente { get; set; } = string.Empty;
+        public decimal Total { get; set; }
     }
 }

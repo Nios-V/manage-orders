@@ -1,5 +1,5 @@
-﻿using Domain.Entities;
-using Domain.Interfaces;
+﻿using Application.DTOs;
+using Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
@@ -8,55 +8,51 @@ namespace API.Controllers
     [Route("ordenes")]
     public class OrdenController : ControllerBase
     {
-        private readonly IOrdenRepository _repository;
+        private readonly IOrdenService _ordenService;
 
-        public OrdenController(IOrdenRepository repository)
+        public OrdenController(IOrdenService ordenService)
         {
-            _repository = repository;
+            _ordenService = ordenService;
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Orden>>> Get()
+        public async Task<ActionResult<IEnumerable<OrdenDto>>> Get()
         {
-            var ordenes = await _repository.GetAllAsync(); //TODO: add pagination
+            var ordenes = await _ordenService.GetAllOrdersAsync();
             return Ok(ordenes);
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Orden>> GetById(int id)
+        public async Task<ActionResult<DetailedOrdenDto>> GetById(int id)
         {
-            var orden = await _repository.GetByIdAsync(id);
+            var orden = await _ordenService.GetOrderByIdAsync(id);
             if (orden == null)
                 return NotFound();
             return Ok(orden);
         }
 
         [HttpPost]
-        public async Task<ActionResult> Create([FromBody] Orden orden)
+        public async Task<ActionResult<OrdenDto>> Create([FromBody] CreateOrdenDto dto)
         {
-            await _repository.AddAsync(orden);
+            var orden = await _ordenService.CreateOrderAsync(dto);
             return CreatedAtAction(nameof(GetById), new { id = orden.Id }, orden);
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult> Update(int id, [FromBody] Orden orden)
+        public async Task<ActionResult> Update(int id, [FromBody] UpdateOrdenDto dto)
         {
-            if (id != orden.Id)
-                return BadRequest();
-            var existingOrden = await _repository.GetByIdAsync(id);
-            if (existingOrden == null)
+            var orden = await _ordenService.UpdateOrderAsync(id, dto);
+            if (orden == null)
                 return NotFound();
-            await _repository.UpdateAsync(orden);
             return NoContent();
         }
 
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(int id)
         {
-            var existingOrden = await _repository.GetByIdAsync(id);
-            if (existingOrden == null)
+            var deleted = await _ordenService.DeleteOrderAsync(id);
+            if (!deleted)
                 return NotFound();
-            await _repository.DeleteAsync(id);
             return NoContent();
         }
     }
