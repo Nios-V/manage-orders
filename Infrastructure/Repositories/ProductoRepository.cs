@@ -20,9 +20,18 @@ namespace Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task<IEnumerable<Producto>> GetAllAsync()
+        public async Task<(IEnumerable<Producto> Items, int Total)> GetPagedAsync(int page, int size)
         {
-            return await _context.Productos.ToListAsync();
+            var query = _context.Productos.AsQueryable();
+
+            var total = await query.CountAsync();
+
+            var items = await query
+                .Skip((page - 1) * size)
+                .Take(size)
+                .ToListAsync();
+
+            return (items, total);
         }
 
         public async Task<Producto?> GetByIdAsync(int id)

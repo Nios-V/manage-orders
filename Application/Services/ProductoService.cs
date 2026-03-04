@@ -32,15 +32,21 @@ namespace Application.Services
             };
         }
 
-        public async Task<IEnumerable<ProductoDto>> GetAllProductsAsync()
+        public async Task<PaginatedDto<ProductoDto>> GetAllProductsAsync(PaginationDto pagination)
         {
-            var productos = await _repository.GetAllAsync();
-            return productos.Select((p) => new ProductoDto
+            var (items, total) = await _repository.GetPagedAsync(pagination.Page, pagination.Size);
+            return new PaginatedDto<ProductoDto>
             {
-                Id = p.Id,
-                Nombre = p.Nombre,
-                Precio = p.Precio
-            });
+                Data = items.Select(p => new ProductoDto
+                {
+                    Id = p.Id,
+                    Nombre = p.Nombre,
+                    Precio = p.Precio
+                }).ToList(),
+                ActualPage = pagination.Page,
+                PageSize = pagination.Size,
+                Total = total
+            };
         }
 
         public async Task<ProductoDto?> GetProductByIdAsync(int id)

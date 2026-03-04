@@ -57,16 +57,23 @@ namespace Application.Services
             return true;
         }
 
-        public async Task<IEnumerable<OrdenDto>> GetAllOrdersAsync()
+        public async Task<PaginatedDto<OrdenDto>> GetAllOrdersAsync(PaginationDto pagination)
         {
-            var ordenes = await _ordenRepository.GetAllAsync();
-            return ordenes.Select((o) => new OrdenDto
+            var (items, total) = await _ordenRepository.GetPagedAsync(pagination.Page, pagination.Size);
+
+            return new PaginatedDto<OrdenDto>
             {
-                Id = o.Id,
-                Cliente = o.Cliente,
-                FechaCreacion = o.FechaCreacion,
-                Total = o.Total
-            });
+                Data = items.Select(o => new OrdenDto
+                {
+                    Id = o.Id,
+                    Cliente = o.Cliente,
+                    FechaCreacion = o.FechaCreacion,
+                    Total = o.Total
+                }),
+                ActualPage = pagination.Page,
+                PageSize = pagination.Size,
+                Total = total
+            };
         }
 
         public async Task<DetailedOrdenDto?> GetOrderByIdAsync(int id)

@@ -16,10 +16,10 @@ namespace API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<OrdenDto>>> Get()
+        public async Task<ActionResult<PaginatedDto<OrdenDto>>> Get([FromQuery] PaginationDto paginacion)
         {
-            var ordenes = await _ordenService.GetAllOrdersAsync();
-            return Ok(ordenes);
+            var resultado = await _ordenService.GetAllOrdersAsync(paginacion);
+            return Ok(resultado);
         }
 
         [HttpGet("{id}")]

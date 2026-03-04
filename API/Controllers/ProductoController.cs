@@ -16,9 +16,9 @@ namespace API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ProductoDto>>> Get()
+        public async Task<ActionResult<PaginatedDto<ProductoDto>>> Get([FromQuery] PaginationDto paginacion)
         {
-            var productos = await _productoService.GetAllProductsAsync();
+            var productos = await _productoService.GetAllProductsAsync(paginacion);
             return Ok(productos);
         }
 

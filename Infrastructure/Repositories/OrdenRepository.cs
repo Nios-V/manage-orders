@@ -27,9 +27,19 @@ namespace Infrastructure.Repositories
             }
         }
 
-        public async Task<IEnumerable<Orden>> GetAllAsync()
+        public async Task<(IEnumerable<Orden> Items, int Total)> GetPagedAsync(int page, int size)
         {
-            return await _context.Ordenes.ToListAsync();
+            var query = _context.Ordenes.AsQueryable();
+
+            var total = await query.CountAsync();
+
+            var items = await query
+                .OrderByDescending(o => o.FechaCreacion)
+                .Skip((page - 1) * size)
+                .Take(size)
+                .ToListAsync();
+
+            return (items, total);
         }
 
         public async Task<Orden?> GetByIdAsync(int id)
