@@ -1,4 +1,5 @@
-﻿using Application.DTOs;
+﻿using Application.Cache;
+using Application.DTOs;
 using Application.Interfaces;
 using Domain.Entities;
 using Domain.Interfaces;
@@ -10,11 +11,13 @@ namespace Application.Services
     {
         private readonly IOrdenRepository _ordenRepository;
         private readonly IProductoRepository _productoRepository;
+        private readonly ICacheService _cache;
 
-        public OrdenService(IOrdenRepository ordenRepository, IProductoRepository productoRepository)
+        public OrdenService(IOrdenRepository ordenRepository, IProductoRepository productoRepository, ICacheService cache)
         {
             _ordenRepository = ordenRepository;
             _productoRepository = productoRepository;
+            _cache = cache;
         }
 
         public async Task<OrdenDto> CreateOrderAsync(CreateOrdenDto createOrdenDto)
@@ -54,6 +57,9 @@ namespace Application.Services
             var exists = await _ordenRepository.GetByIdAsync(id);
             if (exists == null) return false;
             await _ordenRepository.DeleteAsync(id);
+
+            await _cache.RemoveAsync(CacheKeys.Orden(id));
+
             return true;
         }
 
@@ -78,10 +84,15 @@ namespace Application.Services
 
         public async Task<DetailedOrdenDto?> GetOrderByIdAsync(int id)
         {
+            var cacheKey = CacheKeys.Orden(id);
+
+            var cached = await _cache.GetAsync<DetailedOrdenDto>(cacheKey);
+            if (cached is not null) return cached;
+
             var orden = await _ordenRepository.GetByIdAsync(id);
             if (orden == null) return null;
 
-            return new DetailedOrdenDto
+            var dto = new DetailedOrdenDto
             {
                 Id = orden.Id,
                 Cliente = orden.Cliente,
@@ -94,6 +105,9 @@ namespace Application.Services
                     Precio = op.Producto.Precio
                 }).ToList()
             };
+
+            await _cache.SetAsync(cacheKey, dto, TimeSpan.FromMinutes(10));
+            return dto;
         }
 
         public async Task<OrdenDto?> UpdateOrderAsync(int id, UpdateOrdenDto updateOrdenDto)
@@ -105,6 +119,8 @@ namespace Application.Services
             orden.Total = updateOrdenDto.Total;
 
             await _ordenRepository.UpdateAsync(orden);
+
+            await _cache.RemoveAsync(CacheKeys.Orden(id));
 
             return new OrdenDto
             {

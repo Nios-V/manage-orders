@@ -1,4 +1,5 @@
-﻿using Application.DTOs;
+﻿using Application.Cache;
+using Application.DTOs;
 using Application.Interfaces;
 using Domain.Entities;
 using Domain.Interfaces;
@@ -8,10 +9,12 @@ namespace Application.Services
     public class ProductoService : IProductoService
     {
         private readonly IProductoRepository _repository;
+        private readonly ICacheService _cache;
 
-        public ProductoService(IProductoRepository repository)
+        public ProductoService(IProductoRepository repository, ICacheService cache)
         {
             _repository = repository;
+            _cache = cache;
         }
 
         public async Task<ProductoDto> CreateProductAsync(CreateProductoDto createProductoDto)
@@ -51,18 +54,26 @@ namespace Application.Services
 
         public async Task<ProductoDto?> GetProductByIdAsync(int id)
         {
+            var cacheKey = CacheKeys.Producto(id);
+
+            var cached = await _cache.GetAsync<ProductoDto>(cacheKey);
+            if (cached is not null) return cached;
+
             var producto = await _repository.GetByIdAsync(id);
             if (producto == null)
             {
                 return null;
             }
 
-            return new ProductoDto
+            var dto = new ProductoDto
             {
                 Id = producto.Id,
                 Nombre = producto.Nombre,
                 Precio = producto.Precio
             };
+
+            await _cache.SetAsync(cacheKey, dto, TimeSpan.FromMinutes(10));
+            return dto;
         }
     }
 }
