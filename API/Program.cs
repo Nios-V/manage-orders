@@ -2,9 +2,11 @@ using API.Middleware;
 using Application.Interfaces;
 using Application.Services;
 using Domain.Interfaces;
+using Infrastructure.Cache;
 using Infrastructure.Persistence;
 using Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,14 +19,19 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IOrdenRepository, OrdenRepository>();
 builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
 
+builder.Services.AddStackExchangeRedisCache((options) =>
+{
+    options.Configuration = builder.Configuration["Redis:ConnectionString"];
+    options.InstanceName = "manage-orders:";
+});
+builder.Services.AddScoped<ICacheService, RedisCacheService>();
+
 builder.Services.AddScoped<IOrdenService, OrdenService>();
 builder.Services.AddScoped<IProductoService, ProductoService>();
 
 builder.Services.AddControllers();
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();
