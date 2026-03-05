@@ -1,8 +1,10 @@
-﻿using Application.Services;
+﻿using Application.DTOs;
+using Application.Interfaces;
+using Application.Services;
 using Domain.Entities;
 using Domain.Interfaces;
-using Tests.Helpers;
 using Moq;
+using Tests.Helpers;
 
 namespace Tests.Services
 {
@@ -10,13 +12,15 @@ namespace Tests.Services
     {
         private readonly Mock<IOrdenRepository> _ordenRepoMock;
         private readonly Mock<IProductoRepository> _productoRepoMock;
+        private readonly Mock<ICacheService> _cacheMock;
         private readonly OrdenService _orderService;
 
         public OrdenServiceTests()
         {
             _ordenRepoMock = new Mock<IOrdenRepository>();
             _productoRepoMock = new Mock<IProductoRepository>();
-            _orderService = new OrdenService(_ordenRepoMock.Object, _productoRepoMock.Object);
+            _cacheMock = new Mock<ICacheService>();
+            _orderService = new OrdenService(_ordenRepoMock.Object, _productoRepoMock.Object, _cacheMock.Object);
         }
 
         // GetAllOrdersAsync
@@ -122,6 +126,58 @@ namespace Tests.Services
             Assert.Equal(5, resultado.Productos[0].Id);
             Assert.Equal("Monitor OLED", resultado.Productos[0].Nombre);
             Assert.Equal(400m, resultado.Productos[0].Precio);
+        }
+
+        [Fact]
+        public async Task GetOrderByIdAsync_WhenCacheHit_DoesNotCallRepository()
+        {
+            var cachedOrden = new DetailedOrdenDto { Id = 1, Cliente = "Cacheado" };
+            _cacheMock
+                .Setup((c) => c.GetAsync<DetailedOrdenDto>("orden:1"))
+                .ReturnsAsync(cachedOrden);
+
+            var resultado = await _orderService.GetOrderByIdAsync(1);
+
+            Assert.NotNull(resultado);
+            Assert.Equal("Cacheado", resultado.Cliente);
+            _ordenRepoMock.Verify((r) => r.GetByIdAsync(It.IsAny<int>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task GetOrderByIdAsync_WhenCacheMiss_SavesResultInCache()
+        {
+            _cacheMock
+                .Setup((c) => c.GetAsync<DetailedOrdenDto>("orden:1"))
+                .ReturnsAsync((DetailedOrdenDto?)null);
+
+            var orden = DataBuilder.BuildOrdenConProductos();
+            _ordenRepoMock.Setup((r) => r.GetByIdAsync(1)).ReturnsAsync(orden);
+            _cacheMock.Setup((c) => c.SetAsync(It.IsAny<string>(), It.IsAny<DetailedOrdenDto>(), It.IsAny<TimeSpan?>()))
+                .Returns(Task.CompletedTask);
+
+            await _orderService.GetOrderByIdAsync(1);
+
+            _cacheMock.Verify((c) => c.SetAsync(
+                "orden:1",
+                It.IsAny<DetailedOrdenDto>(),
+                It.IsAny<TimeSpan?>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetOrderByIdAsync_WhenNotFound_DoesNotSaveInCache()
+        {
+            _cacheMock
+                .Setup((c) => c.GetAsync<DetailedOrdenDto>(It.IsAny<string>()))
+                .ReturnsAsync((DetailedOrdenDto?)null);
+            _ordenRepoMock.Setup((r) => r.GetByIdAsync(9999)).ReturnsAsync((Orden?)null);
+
+            var resultado = await _orderService.GetOrderByIdAsync(9999);
+
+            Assert.Null(resultado);
+            _cacheMock.Verify((c) => c.SetAsync(
+                It.IsAny<string>(),
+                It.IsAny<DetailedOrdenDto>(),
+                It.IsAny<TimeSpan?>()), Times.Never);
         }
 
         // CreateOrderAsync
@@ -247,6 +303,19 @@ namespace Tests.Services
             Assert.Equal(fechaOriginal, resultado!.FechaCreacion);
         }
 
+        [Fact]
+        public async Task UpdateOrderAsync_WhenExists_InvalidatesCache()
+        {
+            var orden = DataBuilder.BuildOrden();
+            _ordenRepoMock.Setup((r) => r.GetByIdAsync(1)).ReturnsAsync(orden);
+            _ordenRepoMock.Setup((r) => r.UpdateAsync(It.IsAny<Orden>())).Returns(Task.CompletedTask);
+            _cacheMock.Setup((c) => c.RemoveAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+
+            await _orderService.UpdateOrderAsync(1, DataBuilder.BuildUpdateOrdenDto());
+
+            _cacheMock.Verify((c) => c.RemoveAsync("orden:1"), Times.Once);
+        }
+
         // DeleteOrderAsync
 
         [Fact]
@@ -271,6 +340,19 @@ namespace Tests.Services
 
             Assert.False(resultado);
             _ordenRepoMock.Verify((r) => r.DeleteAsync(It.IsAny<int>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task DeleteOrderAsync_WhenExists_InvalidatesCache()
+        {
+            var orden = DataBuilder.BuildOrden();
+            _ordenRepoMock.Setup((r) => r.GetByIdAsync(1)).ReturnsAsync(orden);
+            _ordenRepoMock.Setup((r) => r.DeleteAsync(1)).Returns(Task.CompletedTask);
+            _cacheMock.Setup((c) => c.RemoveAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+
+            await _orderService.DeleteOrderAsync(1);
+
+            _cacheMock.Verify((c) => c.RemoveAsync("orden:1"), Times.Once);
         }
     }
 }
