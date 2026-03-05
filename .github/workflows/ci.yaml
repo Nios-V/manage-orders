@@ -21,10 +21,10 @@ jobs:
           dotnet-version: "10.0.x"
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore ManageOrders.slnx
 
       - name: Build
-        run: dotnet build --no-restore --configuration Release
+        run: dotnet build ManageOrders.slnx --no-restore --configuration Release
 
       - name: Run tests
         run: dotnet test ManageOrders.slnx --no-build --configuration Release --verbosity normal
