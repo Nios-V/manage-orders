@@ -56,30 +56,6 @@ namespace Infrastructure.Persistence
                 new Producto { Id = 4, Nombre = "Teclado Mecánico", Precio = 150.00m },
                 new Producto { Id = 5, Nombre = "Silla Ergonómica", Precio = 500.00m }
             );
-
-            modelBuilder.Entity<Cliente>().HasData(
-                new Cliente
-                {
-                    Nombre = "Administrador",
-                    Email = "admin@manageorders.com",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin1234!"),
-                    Rol = Roles.Admin
-                },
-                new Cliente
-                {
-                    Nombre = "Nicolas Caceres",
-                    Email = "nico@example.com",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Nico1234!"),
-                    Rol = Roles.Cliente
-                },
-                new Cliente
-                {
-                    Nombre = "Andres Parra",
-                    Email = "andres@example.com",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Andres1234!"),
-                    Rol = Roles.Cliente
-                }
-               );
         }
     }
 }

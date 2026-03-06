@@ -6,11 +6,13 @@ using Infrastructure.Auth;
 using Infrastructure.Cache;
 using Infrastructure.Persistence;
 using Infrastructure.Repositories;
+using Infrastructure.Seeders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -88,6 +90,8 @@ builder.Services.AddSwaggerGen((c) =>
 
 builder.Services.AddHealthChecks();
 
+builder.Services.AddMetrics();
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -97,6 +101,7 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<AppDbContext>();
         context.Database.Migrate();
+        await DbSeeder.SeedAsync(context);
         Console.WriteLine("Aplicando migraciones");
     }
     catch (Exception ex)
@@ -120,6 +125,9 @@ if (!app.Environment.IsProduction())
 }
 
 app.MapHealthChecks("/health");
+app.MapMetrics();
+
+app.UseHttpMetrics();
 
 app.UseAuthentication();
 app.UseAuthorization();
