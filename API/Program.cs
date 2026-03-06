@@ -9,10 +9,10 @@ using Infrastructure.Repositories;
 using Infrastructure.Seeders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
+using Microsoft.OpenApi.Models;
 using Prometheus;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +51,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine("Error de Autenticación: " + context.Exception.Message);
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                Console.WriteLine("Token validado con éxito!");
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -124,12 +137,11 @@ if (!app.Environment.IsProduction())
     app.UseHttpsRedirection();
 }
 
-app.MapHealthChecks("/health");
-app.MapMetrics();
-
 app.UseHttpMetrics();
-
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHealthChecks("/health");
+app.MapMetrics();
 app.MapControllers();
 app.Run();

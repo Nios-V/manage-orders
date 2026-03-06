@@ -35,6 +35,7 @@ namespace API.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<ActionResult<OrdenDto>> Create([FromBody] CreateOrdenDto dto)
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
