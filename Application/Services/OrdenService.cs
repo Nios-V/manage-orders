@@ -113,11 +113,22 @@ namespace Application.Services
         public async Task<OrdenDto?> UpdateOrderAsync(int id, UpdateOrdenDto updateOrdenDto)
         {
             var orden = await _ordenRepository.GetByIdAsync(id);
-            if (orden == null) return null;
+            if (orden is null) return null;
 
-            //orden.Cliente = updateOrdenDto.Cliente;
-            orden.Total = updateOrdenDto.Total;
+            orden.OrdenProductos.Clear();
+            decimal subtotal = 0;
 
+            foreach (var productoId in updateOrdenDto.ProductoIds)
+            {
+                var producto = await _productoRepository.GetByIdAsync(productoId);
+                if (producto != null)
+                {
+                    orden.OrdenProductos.Add(new OrdenProducto { ProductoId = producto.Id });
+                    subtotal += producto.Precio;
+                }
+            }
+
+            orden.Total = DescuentoService.AplicarDescuento(subtotal, orden.OrdenProductos.Count);
             await _ordenRepository.UpdateAsync(orden);
 
             await _cache.RemoveAsync(CacheKeys.Orden(id));
