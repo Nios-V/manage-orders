@@ -10,6 +10,8 @@ namespace Infrastructure.Persistence
         public DbSet<Orden> Ordenes => Set<Orden>();
         public DbSet<Producto> Productos => Set<Producto>();
         public DbSet<OrdenProducto> OrdenProductos => Set<OrdenProducto>();
+        public DbSet<Cliente> Clientes=> Set<Cliente>();
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -25,6 +27,11 @@ namespace Infrastructure.Persistence
                 .HasOne(op => op.Producto)
                 .WithMany()
                 .HasForeignKey(op => op.ProductoId);
+
+            modelBuilder.Entity<Orden>()
+                .HasOne(o => o.Cliente)
+                .WithMany(c => c.Ordenes)
+                .HasForeignKey(o => o.ClienteId);
 
             modelBuilder.Entity<Orden>().Property(o => o.Total).HasPrecision(18, 2);
             modelBuilder.Entity<Producto>().Property(p => p.Precio).HasPrecision(18, 2);

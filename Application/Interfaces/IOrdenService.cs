@@ -7,7 +7,7 @@ namespace Application.Interfaces
     {
         Task<PaginatedDto<OrdenDto>> GetAllOrdersAsync(PaginationDto paginationDto);
         Task<DetailedOrdenDto?> GetOrderByIdAsync(int id);
-        Task<OrdenDto> CreateOrderAsync(CreateOrdenDto createOrdenDto);
+        Task<OrdenDto> CreateOrderAsync(CreateOrdenDto createOrdenDto, int clienteId);
         Task<OrdenDto?> UpdateOrderAsync(int id, UpdateOrdenDto updateOrdenDto);
         Task<bool> DeleteOrderAsync(int id);
     }
