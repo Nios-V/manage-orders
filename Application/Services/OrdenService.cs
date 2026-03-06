@@ -20,11 +20,11 @@ namespace Application.Services
             _cache = cache;
         }
 
-        public async Task<OrdenDto> CreateOrderAsync(CreateOrdenDto createOrdenDto)
+        public async Task<OrdenDto> CreateOrderAsync(CreateOrdenDto createOrdenDto, int clienteId)
         {
             var orden = new Orden
             {
-                Cliente = createOrdenDto.Cliente,
+                ClienteId = clienteId,
                 FechaCreacion = DateTime.UtcNow,
                 OrdenProductos = new List<OrdenProducto>()
             };
@@ -46,7 +46,7 @@ namespace Application.Services
             return new OrdenDto
             {
                 Id = orden.Id,
-                Cliente = orden.Cliente,
+                ClienteId = clienteId,
                 FechaCreacion = orden.FechaCreacion,
                 Total = orden.Total
             };
@@ -72,7 +72,7 @@ namespace Application.Services
                 Data = items.Select(o => new OrdenDto
                 {
                     Id = o.Id,
-                    Cliente = o.Cliente,
+                    ClienteId = o.ClienteId,
                     FechaCreacion = o.FechaCreacion,
                     Total = o.Total
                 }),
@@ -95,7 +95,7 @@ namespace Application.Services
             var dto = new DetailedOrdenDto
             {
                 Id = orden.Id,
-                Cliente = orden.Cliente,
+                ClienteId = orden.ClienteId,
                 FechaCreacion = orden.FechaCreacion,
                 Total = orden.Total,
                 Productos = orden.OrdenProductos.Select(op => new ProductoDto
@@ -115,7 +115,7 @@ namespace Application.Services
             var orden = await _ordenRepository.GetByIdAsync(id);
             if (orden == null) return null;
 
-            orden.Cliente = updateOrdenDto.Cliente;
+            //orden.Cliente = updateOrdenDto.Cliente;
             orden.Total = updateOrdenDto.Total;
 
             await _ordenRepository.UpdateAsync(orden);
@@ -125,7 +125,7 @@ namespace Application.Services
             return new OrdenDto
             {
                 Id = orden.Id,
-                Cliente = orden.Cliente,
+                ClienteId = orden.ClienteId,
                 FechaCreacion = orden.FechaCreacion,
                 Total = orden.Total
             };

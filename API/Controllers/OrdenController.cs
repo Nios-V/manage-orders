@@ -1,6 +1,9 @@
 ﻿using Application.DTOs;
 using Application.Interfaces;
+using Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace API.Controllers
 {
@@ -34,11 +37,18 @@ namespace API.Controllers
         [HttpPost]
         public async Task<ActionResult<OrdenDto>> Create([FromBody] CreateOrdenDto dto)
         {
-            var orden = await _ordenService.CreateOrderAsync(dto);
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (claim == null)
+                return Unauthorized();
+
+            var clientId = int.Parse(claim);
+
+            var orden = await _ordenService.CreateOrderAsync(dto, clientId);
             return CreatedAtAction(nameof(GetById), new { id = orden.Id }, orden);
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<ActionResult> Update(int id, [FromBody] UpdateOrdenDto dto)
         {
             var orden = await _ordenService.UpdateOrderAsync(id, dto);
@@ -48,6 +58,7 @@ namespace API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<ActionResult> Delete(int id)
         {
             var deleted = await _ordenService.DeleteOrderAsync(id);
