@@ -276,7 +276,7 @@ El token tiene validez de **8 horas**.
 1. Hacer login en `POST /auth/login`
 2. Copiar el campo `token` de la respuesta
 3. Click en el botón **Authorize** 🔒 en Swagger
-4. Ingresar: `Bearer <token>`
+4. Ingresar: `<token>`
 5. Click **Authorize**
 
 ### Seguridad de contraseñas
