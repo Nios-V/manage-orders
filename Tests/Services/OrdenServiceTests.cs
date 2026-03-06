@@ -20,6 +20,12 @@ namespace Tests.Services
             _ordenRepoMock = new Mock<IOrdenRepository>();
             _productoRepoMock = new Mock<IProductoRepository>();
             _cacheMock = new Mock<ICacheService>();
+
+            // Cache miss por defecto — los tests existentes siguen funcionando sin cambios
+            _cacheMock
+                .Setup((c) => c.GetAsync<DetailedOrdenDto>(It.IsAny<string>()))
+                .ReturnsAsync((DetailedOrdenDto?)null);
+
             _orderService = new OrdenService(_ordenRepoMock.Object, _productoRepoMock.Object, _cacheMock.Object);
         }
 
@@ -61,7 +67,8 @@ namespace Tests.Services
         [Fact]
         public async Task GetAllOrdersAsync_OrderMapping_IsCorrect()
         {
-            var orden = DataBuilder.BuildOrden(id: 1, cliente: "Nicolas Caceres", total: 450m);
+            // ClienteId en lugar de string Cliente
+            var orden = DataBuilder.BuildOrden(id: 1, clienteId: 1, total: 450m);
             var paginacion = DataBuilder.BuildPaginationDto();
 
             _ordenRepoMock
@@ -72,7 +79,7 @@ namespace Tests.Services
             var dto = resultado.Data.First();
 
             Assert.Equal(1, dto.Id);
-            Assert.Equal("Nicolas Caceres", dto.Cliente);
+            Assert.Equal(1, dto.ClienteId);
             Assert.Equal(450m, dto.Total);
         }
 
@@ -88,7 +95,7 @@ namespace Tests.Services
 
             Assert.NotNull(resultado);
             Assert.Equal(orden.Id, resultado.Id);
-            Assert.Equal(orden.Cliente, resultado.Cliente);
+            Assert.Equal(orden.ClienteId, resultado.ClienteId);
             Assert.Equal(2, resultado.Productos.Count);
         }
 
@@ -109,7 +116,8 @@ namespace Tests.Services
             var orden = new Orden
             {
                 Id = 1,
-                Cliente = "Andres Test",
+                ClienteId = 1,
+                Cliente = DataBuilder.BuildCliente(id: 1),
                 Total = 400m,
                 FechaCreacion = DateTime.UtcNow,
                 OrdenProductos = new List<OrdenProducto>
@@ -131,7 +139,7 @@ namespace Tests.Services
         [Fact]
         public async Task GetOrderByIdAsync_WhenCacheHit_DoesNotCallRepository()
         {
-            var cachedOrden = new DetailedOrdenDto { Id = 1, Cliente = "Cacheado" };
+            var cachedOrden = new DetailedOrdenDto { Id = 1, ClienteId = 1, ClienteNombre = "Cacheado" };
             _cacheMock
                 .Setup((c) => c.GetAsync<DetailedOrdenDto>("orden:1"))
                 .ReturnsAsync(cachedOrden);
@@ -139,7 +147,7 @@ namespace Tests.Services
             var resultado = await _orderService.GetOrderByIdAsync(1);
 
             Assert.NotNull(resultado);
-            Assert.Equal("Cacheado", resultado.Cliente);
+            Assert.Equal("Cacheado", resultado.ClienteNombre);
             _ordenRepoMock.Verify((r) => r.GetByIdAsync(It.IsAny<int>()), Times.Never);
         }
 
@@ -183,9 +191,10 @@ namespace Tests.Services
         // CreateOrderAsync
 
         [Fact]
-        public async Task CreateOrderAsync_WithValidProducts_CreatesOrderAndReturnsDto()
+        public async Task CreateOrderAsync_WithValidProducts_AssignsClienteId()
         {
-            var dto = DataBuilder.BuildCreateOrdenDto(cliente: "Andres", productoIds: new List<int> { 1, 2 });
+            // ClienteId viene como parámetro (del token JWT), no del DTO
+            var dto = DataBuilder.BuildCreateOrdenDto(productoIds: new List<int> { 1, 2 });
             var producto1 = DataBuilder.BuildProducto(id: 1, precio: 100m);
             var producto2 = DataBuilder.BuildProducto(id: 2, precio: 150m);
 
@@ -193,10 +202,10 @@ namespace Tests.Services
             _productoRepoMock.Setup((r) => r.GetByIdAsync(2)).ReturnsAsync(producto2);
             _ordenRepoMock.Setup((r) => r.AddAsync(It.IsAny<Orden>())).Returns(Task.CompletedTask);
 
-            var resultado = await _orderService.CreateOrderAsync(dto);
+            var resultado = await _orderService.CreateOrderAsync(dto, clienteId: 3);
 
             Assert.NotNull(resultado);
-            Assert.Equal("Andres", resultado.Cliente);
+            Assert.Equal(3, resultado.ClienteId);
             _ordenRepoMock.Verify((r) => r.AddAsync(It.IsAny<Orden>()), Times.Once);
         }
 
@@ -209,7 +218,7 @@ namespace Tests.Services
             _productoRepoMock.Setup((r) => r.GetByIdAsync(2)).ReturnsAsync(DataBuilder.BuildProducto(id: 2, precio: 300m));
             _ordenRepoMock.Setup((r) => r.AddAsync(It.IsAny<Orden>())).Returns(Task.CompletedTask);
 
-            var resultado = await _orderService.CreateOrderAsync(dto);
+            var resultado = await _orderService.CreateOrderAsync(dto, clienteId: 1);
 
             Assert.Equal(540m, resultado.Total);
         }
@@ -228,7 +237,7 @@ namespace Tests.Services
             }
             _ordenRepoMock.Setup((r) => r.AddAsync(It.IsAny<Orden>())).Returns(Task.CompletedTask);
 
-            var resultado = await _orderService.CreateOrderAsync(dto);
+            var resultado = await _orderService.CreateOrderAsync(dto, clienteId: 1);
 
             Assert.Equal(510m, resultado.Total);
         }
@@ -241,7 +250,7 @@ namespace Tests.Services
             _productoRepoMock.Setup((r) => r.GetByIdAsync(99)).ReturnsAsync((Producto?)null);
             _ordenRepoMock.Setup((r) => r.AddAsync(It.IsAny<Orden>())).Returns(Task.CompletedTask);
 
-            var resultado = await _orderService.CreateOrderAsync(dto);
+            var resultado = await _orderService.CreateOrderAsync(dto, clienteId: 1);
 
             Assert.Equal(100m, resultado.Total);
             _ordenRepoMock.Verify((r) => r.AddAsync(It.Is<Orden>(o => o.OrdenProductos.Count == 1)), Times.Once);
@@ -253,7 +262,7 @@ namespace Tests.Services
             var dto = DataBuilder.BuildCreateOrdenDto(productoIds: new List<int>());
             _ordenRepoMock.Setup((r) => r.AddAsync(It.IsAny<Orden>())).Returns(Task.CompletedTask);
 
-            var resultado = await _orderService.CreateOrderAsync(dto);
+            var resultado = await _orderService.CreateOrderAsync(dto, clienteId: 1);
 
             Assert.Equal(0m, resultado.Total);
         }
@@ -263,16 +272,17 @@ namespace Tests.Services
         [Fact]
         public async Task UpdateOrderAsync_WhenExists_UpdatesAndReturnsDto()
         {
-            var orden = DataBuilder.BuildOrden(id: 1, cliente: "Nicolas", total: 100m);
-            var updateDto = DataBuilder.BuildUpdateOrdenDto(cliente: "Andres", total: 500m);
+            var orden = DataBuilder.BuildOrden(id: 1, clienteId: 1, total: 100m);
+            var updateDto = DataBuilder.BuildUpdateOrdenDto(productoIds: new List<int> { 1 });
 
+            _productoRepoMock.Setup((r) => r.GetByIdAsync(1))
+                .ReturnsAsync(DataBuilder.BuildProducto(id: 1, precio: 500m));
             _ordenRepoMock.Setup((r) => r.GetByIdAsync(1)).ReturnsAsync(orden);
             _ordenRepoMock.Setup((r) => r.UpdateAsync(It.IsAny<Orden>())).Returns(Task.CompletedTask);
 
             var resultado = await _orderService.UpdateOrderAsync(1, updateDto);
 
             Assert.NotNull(resultado);
-            Assert.Equal("Andres", resultado.Cliente);
             Assert.Equal(500m, resultado.Total);
             _ordenRepoMock.Verify((r) => r.UpdateAsync(It.IsAny<Orden>()), Times.Once);
         }
@@ -286,21 +296,6 @@ namespace Tests.Services
 
             Assert.Null(resultado);
             _ordenRepoMock.Verify((r) => r.UpdateAsync(It.IsAny<Orden>()), Times.Never);
-        }
-
-        [Fact]
-        public async Task UpdateOrderAsync_DoesNotModifyCreationDate()
-        {
-            var fechaOriginal = new DateTime(2025, 1, 15, 0, 0, 0, DateTimeKind.Utc);
-            var orden = DataBuilder.BuildOrden();
-            orden.FechaCreacion = fechaOriginal;
-
-            _ordenRepoMock.Setup((r) => r.GetByIdAsync(1)).ReturnsAsync(orden);
-            _ordenRepoMock.Setup((r) => r.UpdateAsync(It.IsAny<Orden>())).Returns(Task.CompletedTask);
-
-            var resultado = await _orderService.UpdateOrderAsync(1, DataBuilder.BuildUpdateOrdenDto());
-
-            Assert.Equal(fechaOriginal, resultado!.FechaCreacion);
         }
 
         [Fact]

@@ -5,6 +5,25 @@ namespace Tests.Helpers
 {
     public class DataBuilder
     {
+        public static Cliente BuildCliente(
+            int id = 1,
+            string nombre = "Nicolas Caceres",
+            string email = "nico@example.com",
+            string rol = Roles.Cliente)
+        {
+            return new Cliente
+            {
+                Id = id,
+                Nombre = nombre,
+                Email = email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password123!"),
+                Rol = rol
+            };
+        }
+
+        public static Cliente BuildAdmin(int id = 99)
+            => BuildCliente(id: id, nombre: "Admin", email: "admin@example.com", rol: Roles.Admin);
+
         public static Producto BuildProducto(
             int id = 1,
             string nombre = "Audifonos JBL",
@@ -16,64 +35,57 @@ namespace Tests.Helpers
                 .Select(i => BuildProducto(id: i, nombre: $"Producto {i}", precio: i * 50m))
                 .ToList();
 
-        public static Orden BuildOrden(
-            int id = 1,
-            string cliente = "Nicolas Caceres Test",
-            decimal total = 123.25m,
-            List<OrdenProducto>? ordenProductos = null)
-            => new()
+        public static Orden BuildOrden(int id = 1, int clienteId = 1, decimal total = 200m)
+        {
+            return new Orden
             {
                 Id = id,
-                Cliente = cliente,
+                ClienteId = clienteId,
+                Cliente = BuildCliente(id: clienteId),
                 FechaCreacion = DateTime.UtcNow,
                 Total = total,
-                OrdenProductos = ordenProductos ?? new List<OrdenProducto>()
+                OrdenProductos = new List<OrdenProducto>()
             };
+        }
 
         public static Orden BuildOrdenConProductos(int cantidadProductos = 2)
         {
             var productos = BuildProductos(cantidadProductos);
-            var ordenProductos = productos
-                .Select(p => new OrdenProducto
-                {
-                    ProductoId = p.Id,
-                    Producto = p
-                })
-                .ToList();
+            var ordenProductos = productos.Select(p => new OrdenProducto
+            {
+                ProductoId = p.Id,
+                Producto = p
+            }).ToList();
 
             return new Orden
             {
                 Id = 1,
-                Cliente = "Nicolas Caceres Test",
+                ClienteId = 1,
+                Cliente = BuildCliente(),
                 FechaCreacion = DateTime.UtcNow,
                 Total = productos.Sum(p => p.Precio),
                 OrdenProductos = ordenProductos
             };
         }
 
-        public static List<Orden> BuildOrdenes(int count = 3)
-            => Enumerable.Range(1, count)
-                .Select(i => BuildOrden(id: i, cliente: $"Cliente {i}", total: i * 100m))
-                .ToList();
+        public static CreateOrdenDto BuildCreateOrdenDto(List<int>? productoIds = null)
+            => new() { ProductoIds = productoIds ?? new List<int> { 1, 2 } };
+
+        public static List<Orden> BuildOrdenes(int cantidad = 3)
+        {
+            var lista = new List<Orden>();
+            for (int i = 1; i <= cantidad; i++)
+                lista.Add(BuildOrden(id: i, clienteId: i, total: i * 100m));
+            return lista;
+        }
 
         public static CreateProductoDto BuildCreateProductoDto(
             string nombre = "Producto Nuevo",
             decimal precio = 99.99m)
             => new() { Nombre = nombre, Precio = precio };
 
-        public static CreateOrdenDto BuildCreateOrdenDto(
-            string cliente = "Nicolas Caceres",
-            List<int>? productoIds = null)
-            => new()
-            {
-                Cliente = cliente,
-                ProductoIds = productoIds ?? new List<int> { 1, 2 }
-            };
-
-        public static UpdateOrdenDto BuildUpdateOrdenDto(
-            string cliente = "Cliente Actualizado",
-            decimal total = 300m)
-            => new() { Cliente = cliente, Total = total };
+        public static UpdateOrdenDto BuildUpdateOrdenDto(List<int>? productoIds = null)
+            => new() { ProductoIds = productoIds ?? new List<int> { 1 } };
 
         public static PaginationDto BuildPaginationDto(int page = 1, int size = 10)
             => new() { Page = page, Size = size };
