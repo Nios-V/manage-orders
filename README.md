@@ -1,6 +1,6 @@
 # 📦 Manage Orders API
 
-API REST para gestión de órdenes y productos, construida con .NET 10 siguiendo arquitectura limpia. Incluye autenticación JWT, caché con Redis, observabilidad con Prometheus y Grafana, y pipeline CI con GitHub Actions.
+📦 Manage Orders API es una tarea técnica desarrollada para Voultech. Consiste en una API REST para gestión de órdenes y productos, construida con .NET 10 siguiendo arquitectura limpia. Incluye autenticación JWT, caché con Redis, observabilidad con Prometheus y Grafana, y pipeline CI con GitHub Actions.
 
 ---
 
